@@ -34,7 +34,7 @@ while (true)
 
 void DisplayMenu()
 {
-    Console.WriteLine("\n=== Μενού Επιλογών ===");
+    Console.WriteLine("\n=== Menu ===");
     Console.WriteLine("1. (Add player)");
     Console.WriteLine("2. (Display list)");
     Console.WriteLine("3. (Find by name)");
@@ -84,7 +84,7 @@ void FindByName(string name)
         return;
     }
 
-    Player player = players.FirstOrDefault(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+    Player? player = players.FirstOrDefault(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 
     if (player != null)
     {
