@@ -17,7 +17,17 @@ while (true)
         case "2":
             DisplayList(); 
             break;
-
+        case "3":
+            Console.Write("Give player's name to search: ");
+            string? searchName = Console.ReadLine();
+            FindByName(searchName ?? "");
+            break;
+        case "4":
+            Console.WriteLine("Exiting...");
+            return;
+        default:
+            Console.WriteLine("Not valid choice try again...");
+            break;
     }
 }
 
@@ -63,6 +73,25 @@ void DisplayList()
         {
             Console.WriteLine(player.ToString());
         }
+    }
+}
+
+void FindByName(string name)
+{
+    if (string.IsNullOrWhiteSpace(name))
+    {
+        Console.WriteLine("Name must not be empty");
+        return;
+    }
+
+    Player player = players.FirstOrDefault(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+    if (player != null)
+    {
+        Console.WriteLine("Player found: " + player.ToString());
+    } else
+    {
+        Console.WriteLine("Player with name " + name + " not found");
     }
 }
 
