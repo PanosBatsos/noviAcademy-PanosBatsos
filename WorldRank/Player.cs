@@ -7,27 +7,24 @@ namespace WorldRank
     public class Player : IPlayer
     {
         
-
         public Player(string name)
         {
             if (string.IsNullOrEmpty(name))
             {
                 throw new ArgumentNullException("name");
             }
-
+            
             Id = Guid.NewGuid();
             Name = name;
             Score = 0;
-            wallets = new Dictionary<Currency, Wallet> ();
-            wallets.Add(Currency.EUR, new Wallet(Currency.EUR));
-            wallets.Add(Currency.USD, new Wallet(Currency.USD));
+            Wallets = new Dictionary<Currency, Wallet>();
         }
 
         public string Name { get; private set; }
         public Guid Id { get; }
         public int Score { set; get; }
 
-        public Dictionary<Currency, Wallet> wallets;
+        public Dictionary<Currency, Wallet> Wallets { get;  set; }
         
         public void AddScore(int score)
         {
