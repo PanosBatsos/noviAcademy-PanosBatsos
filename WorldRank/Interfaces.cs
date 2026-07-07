@@ -9,5 +9,7 @@ namespace WorldRank
         public string Name { get; }
         public Guid Id { get; }
         public int Score { set; get; }
+
+
     }
 }
