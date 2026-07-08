@@ -1,4 +1,5 @@
-﻿using WorldRank;
+﻿using System.Xml.Linq;
+using WorldRank;
 
 List<Player> players = new List<Player>();
 
@@ -21,9 +22,7 @@ while (true)
             DisplayList(); 
             break;
         case "3":
-            Console.Write("Give player's name to search: ");
-            string? searchName = Console.ReadLine();
-            FindByName(searchName ?? "");
+            FindByName();
             break;
         case "4":
             Console.WriteLine("Exiting...");
@@ -95,31 +94,22 @@ void DisplayList()
     }
 }
 
-void FindByName(string name)
+void FindByName()
 {
-    if (string.IsNullOrWhiteSpace(name))
-    {
-        Console.WriteLine("Name must not be empty");
-        return;
-    }
-
-    Player? player = players.FirstOrDefault(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+    Player? player = FindPlayerByName();
 
     if (player != null)
     {
         Console.WriteLine("Player found: " + player.ToString());
     } else
     {
-        Console.WriteLine("Player with name " + name + " not found");
+        Console.WriteLine("Player not found");
     }
 }
 
 void LinkWallet()
 {
-    Console.Write("Enter Name: ");
-    string? name = Console.ReadLine();
-    Player? player = players.FirstOrDefault(p => p.Name.Equals(name ?? ""));
-
+    Player? player = FindPlayerByName();
     if (player == null)
     {
         Console.WriteLine("Player not found");
@@ -144,15 +134,11 @@ void LinkWallet()
 
     Wallet wallet = new Wallet(selectedCurrency);
     walletRepository.AddWallet(wallet, player.Id);
-
-    Console.WriteLine("Wallet succesfully linked to player: " + player.Name);
 }
 
 void ShowPlayersWallets()
 {
-    Console.Write("Enter Player's name to show wallets: ");
-    string? name = Console.ReadLine();
-    Player? player = players.FirstOrDefault(p => p.Name.Equals(name ?? ""));
+    Player? player = FindPlayerByName(); 
 
     if (player == null)
     {
@@ -176,9 +162,8 @@ void ShowPlayersWallets()
 
 void RemovePlayerFromList()
 {
-    Console.Write("Enter Player's name: ");
-    string? name = Console.ReadLine();
-    Player? player = players.FirstOrDefault(p => p.Name.Equals(name ?? ""));
+    
+    Player? player = FindPlayerByName();
 
     if (player == null)
     {
@@ -209,4 +194,13 @@ void GroupPlayersByScore()
             Console.WriteLine(player.ToString());
         }
     }
+}
+
+Player? FindPlayerByName()
+{
+    Console.Write("Enter Name: ");
+    string? name = Console.ReadLine();
+    Player? player = players.FirstOrDefault(p => p.Name.Equals(name ?? "", StringComparison.OrdinalIgnoreCase));
+
+    return player;
 }

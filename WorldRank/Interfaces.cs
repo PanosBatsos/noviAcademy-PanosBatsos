@@ -44,12 +44,20 @@ namespace WorldRank
         {
             Player? foundPlayer = Players.FirstOrDefault(p => p.Id == playerId);
 
-            if (foundPlayer != null)
+            if (foundPlayer == null)
             {
-                foundPlayer.Wallets.Add(wallet.Currency, wallet);
+                Console.WriteLine("This player does not exist");
+                return;
+            }
+
+            if (foundPlayer.Wallets.ContainsKey(wallet.Currency))
+            {
+                Console.WriteLine("Player is already linked to this wallet");
+                return;
             } else
             {
-                throw new ArgumentNullException("This player does not exist");
+                foundPlayer.Wallets.Add(wallet.Currency, wallet);
+                Console.WriteLine("Wallet linked to player succesfully");
             }
         }
         
@@ -86,7 +94,7 @@ namespace WorldRank
 
         public void DeletePlayer(Guid playerId)
         {
-            Player? foundPlayer = Players.FirstOrDefault(p => p.Id == playerId);
+            Player? foundPlayer = FindPlayer(playerId);
 
             if (foundPlayer != null)
             {
