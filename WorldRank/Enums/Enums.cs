@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace WorldRank
+namespace WorldRank.Enums
 {
     public enum Currency
     {

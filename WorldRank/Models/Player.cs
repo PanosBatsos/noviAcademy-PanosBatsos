@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using WorldRank.Enums;
+using WorldRank.Interfaces;
 
-namespace WorldRank
+namespace WorldRank.Models
 {
     public class Player : IPlayer
     {

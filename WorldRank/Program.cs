@@ -1,5 +1,9 @@
 ﻿using System.Xml.Linq;
 using WorldRank;
+using WorldRank.Enums;
+using WorldRank.Interfaces;
+using WorldRank.Models;
+using WorldRank.Repositories;
 
 List<Player> players = new List<Player>();
 

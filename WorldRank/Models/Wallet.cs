@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using WorldRank.Enums;
 
-namespace WorldRank
+namespace WorldRank.Models
 {
     public class Wallet
     {
