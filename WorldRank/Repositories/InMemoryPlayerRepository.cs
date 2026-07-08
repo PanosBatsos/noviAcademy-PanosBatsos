@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Xml.Linq;
+using WorldRank.Exceptions;
 using WorldRank.Models;
 
 namespace WorldRank.Repositories
@@ -22,15 +23,7 @@ namespace WorldRank.Repositories
         public void DeletePlayer(Guid playerId)
         {
             Player? foundPlayer = FindPlayer(playerId);
-
-            if (foundPlayer != null)
-            {
-                Players.Remove(foundPlayer);
-            }
-            else
-            {
-                throw new ArgumentNullException("This player does not exist");
-            }
+            Players.Remove(foundPlayer);
         }
 
         public Player FindPlayer(Guid playerId)
@@ -43,7 +36,7 @@ namespace WorldRank.Repositories
             }
             else
             {
-                throw new ArgumentNullException("This player does not exist");
+                throw new PlayerNotFoundException("This player does not exist");
             }
         }
 

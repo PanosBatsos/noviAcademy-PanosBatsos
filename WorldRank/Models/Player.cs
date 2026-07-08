@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using WorldRank.Enums;
+using WorldRank.Exceptions;
 using WorldRank.Interfaces;
 
 namespace WorldRank.Models
@@ -32,7 +33,7 @@ namespace WorldRank.Models
         {
             if (score < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(score), "Score cannot be negative");
+                throw new NegativeScoreException ("Score cannot be negative");
             }
 
             Score += score;

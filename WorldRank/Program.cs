@@ -4,6 +4,7 @@ using WorldRank.Enums;
 using WorldRank.Models;
 using WorldRank.Repositories;
 using NLog;
+using WorldRank.Exceptions;
 
 var logger = LogManager.GetCurrentClassLogger();
 
@@ -76,20 +77,32 @@ void AddPlayer()
 {
     Console.Write("Player's Name: ");
     string? name = Console.ReadLine();
-    Player player = new Player(name ?? "");
 
-    Console.Write("Give score: ");
-    if (int.TryParse(Console.ReadLine(), out int score))
+    try
     {
-        player.AddScore(score);
-        playerRepository.AddPlayer(player);
-        Console.WriteLine("Player added");
+        Player player = new Player(name ?? "");
+
+        Console.Write("Give score: ");
+        if (int.TryParse(Console.ReadLine(), out int score))
+        {
+            player.AddScore(score);
+            playerRepository.AddPlayer(player);
+            Console.WriteLine("Player added");
+        }
+        else
+        {
+            Console.WriteLine("Score must be an integer");
+        }
     }
-    else
+    catch (ArgumentException)
     {
-        Console.WriteLine("Score must be an integer");
+        Console.WriteLine("Name cannot be empty");
     }
-   
+    catch (NegativeScoreException)
+    {
+        Console.WriteLine("Score cannot be negative");
+    }
+
 }
 
 void DisplayList()

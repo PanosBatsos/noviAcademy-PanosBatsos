@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using WorldRank.Enums;
+using WorldRank.Exceptions;
 
 namespace WorldRank.Models
 {
@@ -20,12 +21,12 @@ namespace WorldRank.Models
 
         public void AddBalance(decimal amount) 
         {
-            if (amount <= 0)
+            if (amount < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(amount), "Amount must be greater than 0");
+                throw new InsufficientFundsException("Ammount cannot be negative");
             }
 
-            Balance += amount;
+            Balance = amount;
         }
     }
 }
