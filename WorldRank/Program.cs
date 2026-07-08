@@ -9,10 +9,8 @@ using WorldRank.Exceptions;
 var logger = LogManager.GetCurrentClassLogger();
 
 logger.Info("App started");
-logger.Warn("This is a warning");
-logger.Error("Something broke");
 
-LogManager.Shutdown();
+
 
 List<Player> players = new List<Player>();
 
@@ -24,7 +22,8 @@ while (true)
     DisplayMenu();
     string? choice = Console.ReadLine();
     Console.WriteLine();
-    
+
+    logger.Debug("User selected menu option: {menuChoice}", choice);
 
     switch (choice)
     {
@@ -38,6 +37,7 @@ while (true)
             FindByName();
             break;
         case "4":
+            logger.Info("Application shutting down gracefully by user request.");
             Console.WriteLine("Exiting...");
             return;
         case "5":
@@ -53,6 +53,7 @@ while (true)
             GroupPlayersByScore();
             break;
         default:
+            logger.Warn("Invalid menu choice entered: {MenuChoice}", choice);
             Console.WriteLine("Not valid choice try again...");
             break;
     }
@@ -81,25 +82,29 @@ void AddPlayer()
     try
     {
         Player player = new Player(name ?? "");
-
         Console.Write("Give score: ");
-        if (int.TryParse(Console.ReadLine(), out int score))
+        string? scoreInput = Console.ReadLine();
+        if (int.TryParse(scoreInput, out int score))
         {
             player.AddScore(score);
             playerRepository.AddPlayer(player);
+            logger.Info("Player {PlayerName} added successfully with ID: {PlayerId} and Score: {Score}", player.Name, player.Id, score);
             Console.WriteLine("Player added");
         }
         else
         {
+            logger.Warn("Failed to add player {PlayerName}: Score input '{ScoreInput}' is not a valid integer.", name, scoreInput);
             Console.WriteLine("Score must be an integer");
         }
     }
-    catch (ArgumentException)
+    catch (ArgumentException ae)
     {
+        logger.Error(ae, "Failed to create player: Name parameter was empty or null.");
         Console.WriteLine("Name cannot be empty");
     }
-    catch (NegativeScoreException)
+    catch (NegativeScoreException nse)
     {
+        logger.Error(nse, "Failed to set score for player {name}: Attempted to add a negative score.", name);
         Console.WriteLine("Score cannot be negative");
     }
 
@@ -109,9 +114,11 @@ void DisplayList()
 {
     if (players.Count == 0)
     {
+        logger.Debug("DisplayList requested but player count is 0.");
         Console.WriteLine("Count of players list is 0");
     } else
     {
+        logger.Info("Displaying list of {PlayerCount} players.", players.Count);
         foreach (Player player in players)
         {
             Console.WriteLine(player.ToString());
@@ -125,9 +132,11 @@ void FindByName()
 
     if (player != null)
     {
+        logger.Info("Player {PlayerName} found successfully via search.", player.Name);
         Console.WriteLine("Player found: " + player.ToString());
     } else
     {
+        logger.Debug("Search completed but no player was found.");
         Console.WriteLine("Player not found");
     }
 }
@@ -137,6 +146,7 @@ void LinkWallet()
     Player? player = FindPlayerByName();
     if (player == null)
     {
+        logger.Warn("LinkWallet aborted: Provided player name was not found.");
         Console.WriteLine("Player not found");
         return;
     }
@@ -153,12 +163,14 @@ void LinkWallet()
         selectedCurrency = Currency.EUR;
     } else
     {
+        logger.Warn("LinkWallet aborted: User selected invalid currency choice {CurrencyChoice} for player {PlayerId}.", currChoice, player.Id);
         Console.WriteLine("Not valid choice... Try again");
         return;
     }
 
     Wallet wallet = new Wallet(selectedCurrency);
     walletRepository.AddWallet(wallet, player.Id);
+    logger.Info("Successfully linked a {Currency} wallet to player ID: {PlayerId}.", selectedCurrency, player.Id);
 }
 
 void ShowPlayersWallets()
@@ -167,6 +179,7 @@ void ShowPlayersWallets()
 
     if (player == null)
     {
+        logger.Warn("ShowPlayersWallets aborted: Provided player name was not found.");
         Console.WriteLine("Player not found");
         return;
     }
@@ -174,10 +187,12 @@ void ShowPlayersWallets()
     List<Wallet> userWallets = walletRepository.GetByPlayer(player.Id);
     if (userWallets.Count == 0)
     {
+        logger.Info("Player {PlayerName} (ID: {PlayerId}) currently holds no wallets.", player.Name, player.Id);
         Console.WriteLine("This player has no wallets.");
         return;
     }
 
+    logger.Info("Displaying {WalletCount} wallet(s) for player {PlayerName} (ID: {PlayerId}).", userWallets.Count, player.Name, player.Id);
     Console.WriteLine($"--- Wallets for {player.Name} ---");
     foreach (Wallet wallet in userWallets)
     {
@@ -192,11 +207,13 @@ void RemovePlayerFromList()
 
     if (player == null)
     {
+        logger.Warn("RemovePlayerFromList aborted: Provided player name was not found.");
         Console.WriteLine("Player does not exist");
         return;
     }
 
     playerRepository.DeletePlayer(player.Id);
+    logger.Info("Player {PlayerName} with ID: {PlayerId} was successfully removed from the system.", player.Name, player.Id);
     Console.WriteLine("Player removed from List succesfully");
 }
 
@@ -206,10 +223,12 @@ void GroupPlayersByScore()
 
     if (!playersGroup.Any())
     {
+        logger.Debug("GroupPlayersByScore executed, but no players are available to group.");
         Console.WriteLine("No players to group");
         return;
     }
 
+    logger.Info("Grouped {PlayerCount} players by score successfully.", players.Count);
     foreach (IGrouping<int, Player> group in playersGroup)
     {
         Console.WriteLine("Score: " + group.Key);
@@ -225,7 +244,8 @@ Player? FindPlayerByName()
 {
     Console.Write("Enter Name: ");
     string? name = Console.ReadLine();
-    Player? player = players.FirstOrDefault(p => p.Name.Equals(name ?? "", StringComparison.OrdinalIgnoreCase));
+    logger.Debug("Searching for player with exact name: {SearchName}", name);
 
+    Player? player = players.FirstOrDefault(p => p.Name.Equals(name ?? "", StringComparison.OrdinalIgnoreCase));
     return player;
 }
