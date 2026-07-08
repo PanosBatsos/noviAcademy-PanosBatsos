@@ -1,9 +1,17 @@
 ﻿using System.Xml.Linq;
 using WorldRank;
 using WorldRank.Enums;
-using WorldRank.Interfaces;
 using WorldRank.Models;
 using WorldRank.Repositories;
+using NLog;
+
+var logger = LogManager.GetCurrentClassLogger();
+
+logger.Info("App started");
+logger.Warn("This is a warning");
+logger.Error("Something broke");
+
+LogManager.Shutdown();
 
 List<Player> players = new List<Player>();
 

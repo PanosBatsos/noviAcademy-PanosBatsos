@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using WorldRank.Interfaces;
 using WorldRank.Models;
 
 namespace WorldRank.Repositories

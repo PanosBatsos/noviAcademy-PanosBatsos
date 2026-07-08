@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using WorldRank.Models;
 
-namespace WorldRank.Interfaces
+namespace WorldRank.Repositories
 {
     public interface IPlayerRepository
     {
