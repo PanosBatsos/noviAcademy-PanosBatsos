@@ -1,7 +1,7 @@
 using Domain.Enums;
 using Domain.Wallets;
 
-namespace Infrastructure.Repositories
+namespace Application.Repositories
 {
 	public interface IWalletRepository
 	{

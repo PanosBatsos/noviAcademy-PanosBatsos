@@ -1,6 +1,6 @@
 ﻿using Domain.Player;
 
-namespace Infrastructure.Repositories
+namespace Application.Repositories
 {
 	public interface IPlayerRepository
 	{
