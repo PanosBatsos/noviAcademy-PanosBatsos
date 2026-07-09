@@ -59,6 +59,14 @@ namespace Domain.Wallets
 			Balance = newBalance;
 		}
 
+		public void ForceWithdraw(decimal amount)
+		{
+			if(IsBlocked)
+			{
+				throw new WalletBlockedException(Currency);
+			}
+            Balance = Balance - amount;
+        }
 		public override string ToString() => $"Balance -> {Balance} Currency -> {Currency} IsBlocked -> {IsBlocked}";
 	}
 }
