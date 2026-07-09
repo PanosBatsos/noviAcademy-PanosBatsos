@@ -3,14 +3,21 @@ using Domain.Enums;
 using Domain.Exceptions;
 using Domain.Player;
 using Domain.Wallets;
-using Infrastructure.Repositories;
+using Infrastructure.RepoImpls;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
+using WorldRank;
 
 var logger = LogManager.GetCurrentClassLogger();
 
 //Wallets are stored in their own repository and reference the player via PlayerId
-IWalletRepository walletRepository = new InMemoryWalletRepository();
-IPlayerRepository playerRepository = new InMemoryPlayerRepository();
+var services = new ServiceCollection();
+services.AddWorldRank();
+
+using var provider = services.BuildServiceProvider();
+
+var playerRepository = provider.GetRequiredService<IPlayerRepository>();
+var walletRepository = provider.GetRequiredService<IWalletRepository>();
 
 logger.Info("Application started.");
 
