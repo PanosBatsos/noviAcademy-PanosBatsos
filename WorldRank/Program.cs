@@ -1,206 +1,385 @@
-﻿using System.Xml.Linq;
-using WorldRank;
+using NLog;
+using WorldRank.Console;
+using WorldRank.Console.Enums;
+using WorldRank.Console.Exceptions;
 
-List<Player> players = new List<Player>();
+var logger = LogManager.GetCurrentClassLogger();
 
-IWalletRepository walletRepository = new InMemoryWalletRepository(players);
-IPlayerRepository playerRepository = new InMemoryPlayerRepository(players);
+//Wallets are stored in their own repository and reference the player via PlayerId
+IWalletRepository walletRepository = new InMemoryWalletRepository();
+IPlayerRepository playerRepository = new InMemoryPlayerRepository();
+
+logger.Info("Application started.");
 
 while (true)
 {
-    DisplayMenu();
-    string? choice = Console.ReadLine();
-    Console.WriteLine();
-    
+	Console.WriteLine("\n=== WorldRank Player Registry ===");
+	Console.WriteLine("--- Players ---");
+	Console.WriteLine("1. Add player");
+	Console.WriteLine("2. List all players");
+	Console.WriteLine("3. List players grouped by score");
+	Console.WriteLine("4. Find player by name");
+	Console.WriteLine("5. Find player by id");
+	Console.WriteLine("6. Delete player");
+	Console.WriteLine("--- Wallets ---");
+	Console.WriteLine("7. Add wallet to player");
+	Console.WriteLine("8. Show player wallets");
+	Console.WriteLine("9. Deposit to wallet");
+	Console.WriteLine("10. Withdraw from wallet");
+	Console.WriteLine("11. Block wallet");
+	Console.WriteLine("12. Unblock wallet");
+	Console.WriteLine("13. Update wallet balance");
+	Console.WriteLine("0. Exit");
+	Console.Write("> ");
 
-    switch (choice)
-    {
-        case "1":
-            AddPlayer();
-            break;
-        case "2":
-            DisplayList(); 
-            break;
-        case "3":
-            FindByName();
-            break;
-        case "4":
-            Console.WriteLine("Exiting...");
-            return;
-        case "5":
-            LinkWallet();
-            break;
-        case "6":
-            ShowPlayersWallets();
-            break;
-        case "7":
-            RemovePlayerFromList();
-            break;
-        case "8":
-            GroupPlayersByScore();
-            break;
-        default:
-            Console.WriteLine("Not valid choice try again...");
-            break;
-    }
+	Action? action = Console.ReadLine() switch
+	{
+		"1" => AddPlayer,
+		"2" => ListPlayers,
+		"3" => ListPlayersByScore,
+		"4" => FindPlayerByName,
+		"5" => FindPlayerById,
+		"6" => DeletePlayer,
+		"7" => AddWalletToPlayer,
+		"8" => GetWalletsOfPlayer,
+		"9" => DepositToWallet,
+		"10" => WithdrawFromWallet,
+		"11" => BlockWallet,
+		"12" => UnblockWallet,
+		"13" => UpdateWalletBalance,
+		"0" => null,
+		_ => () => Console.WriteLine("Unknown option.")
+	};
+
+	if (action is null)
+	{
+		logger.Info("Application exiting.");
+		LogManager.Shutdown(); // flush file writes before exit
+		return; // "0" selected — exit
+	}
+
+	try
+	{
+		action();
+	}
+	catch (Exception ex)
+	{
+		// Safety net: log any exception the specific handlers did not catch, and keep the app running.
+		logger.Error(ex, "Unexpected error while handling a menu action");
+		Console.WriteLine($"Unexpected error: {ex.Message}");
+	}
 }
 
+#region Input Helpers
 
-void DisplayMenu()
+int? PromptPlayerId()
 {
-    Console.WriteLine("\n=== Menu ===");
-    Console.WriteLine("1. (Add player)");
-    Console.WriteLine("2. (Display list)");
-    Console.WriteLine("3. (Find by name)");
-    Console.WriteLine("4. (Exit)");
-    Console.WriteLine("5. (Link Player to Wallet)");
-    Console.WriteLine("6. (Display Player's wallets)");
-    Console.WriteLine("7. (Remove Player from List)");
-    Console.WriteLine("8. (Group Players by Score)");
-    Console.Write(" Select (1-8): ");
-} 
+	Console.Write("Give player id: ");
+	if (int.TryParse(Console.ReadLine(), out var playerId))
+		return playerId;
+
+	Console.WriteLine("Player id must be a whole number.");
+	return null;
+}
+
+Currency? PromptCurrency()
+{
+	Console.Write("Give Currency: 1 - EUR | 2 - USD\n");
+	switch (Console.ReadLine())
+	{
+		case "1":
+			return Currency.EUR;
+		case "2":
+			return Currency.USD;
+		default:
+			Console.WriteLine("Unknown currency.");
+			return null;
+	}
+}
+
+decimal? PromptAmount(string label)
+{
+	Console.Write($"{label}: ");
+	if (decimal.TryParse(Console.ReadLine(), out var amount))
+		return amount;
+
+	Console.WriteLine("Amount must be a number.");
+	return null;
+}
+
+// Generates a random, unique player id (avoids collisions with already-registered players).
+int GeneratePlayerId()
+{
+	var existingIds = playerRepository.GetAllPlayers().Select(p => p.Id).ToHashSet();
+
+	int id;
+	do
+	{
+		id = Random.Shared.Next(1, int.MaxValue);
+	}
+	while (existingIds.Contains(id));
+
+	return id;
+}
+
+// Runs a wallet operation and turns any domain (WalletException) failure into a friendly message + log.
+void RunWalletOperation(Action operation)
+{
+	try
+	{
+		operation();
+	}
+	catch (WalletException ex)
+	{
+		logger.Warn(ex, "Wallet operation failed");
+		Console.WriteLine($"Error: {ex.Message}");
+	}
+}
+
+#endregion Input Helpers
+
+#region Player Methods
 
 void AddPlayer()
 {
-    Console.Write("Player's Name: ");
-    string? name = Console.ReadLine();
-    Player player = new Player(name ?? "");
+	Console.Write("Name: ");
+	var name = Console.ReadLine();
+	if (string.IsNullOrWhiteSpace(name))
+	{
+		Console.WriteLine("Name cannot be empty.");
+		return;
+	}
 
-    Console.Write("Give score: ");
-    if (int.TryParse(Console.ReadLine(), out int score))
-    {
-        player.AddScore(score);
-        playerRepository.AddPlayer(player);
-        Console.WriteLine("Player added");
-    }
-    else
-    {
-        Console.WriteLine("Score must be an integer");
-    }
-   
+	Console.Write("Score: ");
+	var scoreInput = Console.ReadLine();
+	if (!int.TryParse(scoreInput, out var score))
+	{
+		Console.WriteLine("Score must be a whole number.");
+		return;
+	}
+
+	var player = new Player(GeneratePlayerId(), name);
+	player.AddScore(score);
+	playerRepository.AddPlayer(player);
+	Console.WriteLine("Player added successfully.");
 }
 
-void DisplayList()
+void ListPlayers()
 {
-    if (players.Count == 0)
-    {
-        Console.WriteLine("Count of players list is 0");
-    } else
-    {
-        foreach (Player player in players)
-        {
-            Console.WriteLine(player.ToString());
-        }
-    }
+	var all = playerRepository.GetAllPlayers().ToList();
+
+	if (all.Count == 0)
+	{
+		Console.WriteLine("No players registered.");
+		return;
+	}
+
+	foreach (var player in all)
+		Console.WriteLine(player);
 }
 
-void FindByName()
+void ListPlayersByScore()
 {
-    Player? player = FindPlayerByName();
+	var groups = playerRepository.GroupPlayersByScore().ToList();
 
-    if (player != null)
-    {
-        Console.WriteLine("Player found: " + player.ToString());
-    } else
-    {
-        Console.WriteLine("Player not found");
-    }
+	if (groups.Count == 0)
+	{
+		Console.WriteLine("No players registered.");
+		return;
+	}
+
+	foreach (var group in groups)
+	{
+		Console.WriteLine($"Score {group.Key}:");
+		foreach (var player in group)
+			Console.WriteLine($"  {player}");
+	}
 }
 
-void LinkWallet()
+void FindPlayerByName()
 {
-    Player? player = FindPlayerByName();
-    if (player == null)
-    {
-        Console.WriteLine("Player not found");
-        return;
-    }
+	Console.Write("Search by name: ");
+	var term = Console.ReadLine() ?? string.Empty;
 
-    Console.WriteLine("Select Currency (1: USD, 2: EUR): ");
-    string? currChoice = Console.ReadLine();
-    Currency selectedCurrency;
-    if (currChoice == "1")
-    {
-        selectedCurrency = Currency.USD;
-    }
-    else if (currChoice == "2")
-    {
-        selectedCurrency = Currency.EUR;
-    } else
-    {
-        Console.WriteLine("Not valid choice... Try again");
-        return;
-    }
+	var player = playerRepository.GetAllPlayers()
+		.FirstOrDefault(p => p.Name.Equals(term, StringComparison.OrdinalIgnoreCase));
 
-    Wallet wallet = new Wallet(selectedCurrency);
-    walletRepository.AddWallet(wallet, player.Id);
+	Console.WriteLine(player is null ? "No player found." : player.ToString());
 }
 
-void ShowPlayersWallets()
+void FindPlayerById()
 {
-    Player? player = FindPlayerByName(); 
+	var playerId = PromptPlayerId();
+	if (playerId is null)
+		return;
 
-    if (player == null)
-    {
-        Console.WriteLine("Player not found");
-        return;
-    }
+	var player = playerRepository.FindPlayer(playerId.Value);
 
-    List<Wallet> userWallets = walletRepository.GetByPlayer(player.Id);
-    if (userWallets.Count == 0)
-    {
-        Console.WriteLine("This player has no wallets.");
-        return;
-    }
-
-    Console.WriteLine($"--- Wallets for {player.Name} ---");
-    foreach (Wallet wallet in userWallets)
-    {
-        Console.WriteLine($"- Currency: {wallet.Currency} | Balance: {wallet.Balance} | Blocked: {wallet.isBlocked}");
-    }
+	Console.WriteLine(player is null ? "No player found." : player.ToString());
 }
 
-void RemovePlayerFromList()
+void DeletePlayer()
 {
-    
-    Player? player = FindPlayerByName();
+	var playerId = PromptPlayerId();
+	if (playerId is null)
+		return;
 
-    if (player == null)
-    {
-        Console.WriteLine("Player does not exist");
-        return;
-    }
-
-    playerRepository.DeletePlayer(player.Id);
-    Console.WriteLine("Player removed from List succesfully");
+	playerRepository.DeletePlayer(playerId.Value);
+	Console.WriteLine("Player deleted (if it existed).");
 }
 
-void GroupPlayersByScore()
+#endregion Player Methods
+
+#region Wallet Methods
+
+void AddWalletToPlayer()
 {
-    IEnumerable<IGrouping<int, Player>> playersGroup = playerRepository.GrouPlayersByScore();
+	var playerId = PromptPlayerId();
+	if (playerId is null)
+		return;
 
-    if (!playersGroup.Any())
-    {
-        Console.WriteLine("No players to group");
-        return;
-    }
+	var currency = PromptCurrency();
+	if (currency is null)
+		return;
 
-    foreach (IGrouping<int, Player> group in playersGroup)
-    {
-        Console.WriteLine("Score: " + group.Key);
+	var balance = PromptAmount("Initial balance");
+	if (balance is null)
+		return;
 
-        foreach (Player player in group)
-        {
-            Console.WriteLine(player.ToString());
-        }
-    }
+	try
+	{
+		if (playerRepository.FindPlayer(playerId.Value) is null)
+			throw new PlayerNotFoundException(playerId.Value);
+
+		var wallet = new Wallet(playerId.Value, currency.Value, balance.Value);
+		walletRepository.Add(wallet);
+		Console.WriteLine("Wallet added successfully.");
+	}
+	catch (PlayerNotFoundException ex)
+	{
+		logger.Warn(ex, "Could not add wallet, player {PlayerId} not found", playerId);
+		Console.WriteLine($"Error: {ex.Message}");
+	}
+	catch (WalletException ex)
+	{
+		logger.Warn(ex, "Could not add wallet for player {PlayerId} in {Currency}", playerId, currency);
+		Console.WriteLine($"Error: {ex.Message}");
+	}
 }
 
-Player? FindPlayerByName()
+void GetWalletsOfPlayer()
 {
-    Console.Write("Enter Name: ");
-    string? name = Console.ReadLine();
-    Player? player = players.FirstOrDefault(p => p.Name.Equals(name ?? "", StringComparison.OrdinalIgnoreCase));
+	var playerId = PromptPlayerId();
+	if (playerId is null)
+		return;
 
-    return player;
+	var wallets = walletRepository.GetAllWalletsByPlayerId(playerId.Value);
+
+	if (wallets.Count == 0)
+	{
+		Console.WriteLine("No wallets found for this player.");
+		return;
+	}
+
+	foreach (var wallet in wallets)
+		Console.WriteLine($"Wallet Number {wallets.IndexOf(wallet)} {wallet}");
 }
+
+void DepositToWallet()
+{
+	var playerId = PromptPlayerId();
+	if (playerId is null)
+		return;
+
+	var currency = PromptCurrency();
+	if (currency is null)
+		return;
+
+	var amount = PromptAmount("Amount to deposit");
+	if (amount is null)
+		return;
+
+	RunWalletOperation(() =>
+	{
+		walletRepository.Deposit(playerId.Value, currency.Value, amount.Value);
+		Console.WriteLine("Deposit successful.");
+	});
+}
+
+void WithdrawFromWallet()
+{
+	var playerId = PromptPlayerId();
+	if (playerId is null)
+		return;
+
+	var currency = PromptCurrency();
+	if (currency is null)
+		return;
+
+	var amount = PromptAmount("Amount to withdraw");
+	if (amount is null)
+		return;
+
+	RunWalletOperation(() =>
+	{
+		walletRepository.Withdraw(playerId.Value, currency.Value, amount.Value);
+		Console.WriteLine("Withdrawal successful.");
+	});
+}
+
+void BlockWallet()
+{
+	var playerId = PromptPlayerId();
+	if (playerId is null)
+		return;
+
+	var currency = PromptCurrency();
+	if (currency is null)
+		return;
+
+	RunWalletOperation(() =>
+	{
+		walletRepository.Block(playerId.Value, currency.Value);
+		Console.WriteLine("Wallet blocked.");
+	});
+}
+
+void UnblockWallet()
+{
+	var playerId = PromptPlayerId();
+	if (playerId is null)
+		return;
+
+	var currency = PromptCurrency();
+	if (currency is null)
+		return;
+
+	RunWalletOperation(() =>
+	{
+		walletRepository.Unblock(playerId.Value, currency.Value);
+		Console.WriteLine("Wallet unblocked.");
+	});
+}
+
+void UpdateWalletBalance()
+{
+	var playerId = PromptPlayerId();
+	if (playerId is null)
+		return;
+
+	var currency = PromptCurrency();
+	if (currency is null)
+		return;
+
+	var newBalance = PromptAmount("New balance");
+	if (newBalance is null)
+		return;
+
+	RunWalletOperation(() =>
+	{
+		walletRepository.UpdateBalance(playerId.Value, currency.Value, newBalance.Value);
+		Console.WriteLine("Balance updated.");
+	});
+}
+
+#endregion Wallet Methods
