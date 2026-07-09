@@ -1,4 +1,5 @@
-using WorldRank.Console.Enums;
+using Domain.Enums;
+using Domain.Wallets;
 
 namespace WorldRank.Console
 {

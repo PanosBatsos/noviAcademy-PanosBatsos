@@ -1,3 +1,4 @@
+using Domain.Player;
 using NLog;
 
 namespace WorldRank.Console
