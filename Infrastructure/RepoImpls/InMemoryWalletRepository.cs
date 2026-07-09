@@ -4,7 +4,7 @@ using Domain.Exceptions;
 using Domain.Wallets;
 using NLog;
 
-namespace Infrastructure.Repositories
+namespace Infrastructure.RepoImpls
 {
 	public class InMemoryWalletRepository : IWalletRepository
 	{

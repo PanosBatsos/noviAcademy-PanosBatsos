@@ -2,7 +2,7 @@ using Application.Repositories;
 using Domain.Player;
 using NLog;
 
-namespace Infrastructure.Repositories
+namespace Infrastructure.RepoImpls
 {
 	public class InMemoryPlayerRepository : IPlayerRepository
 	{
