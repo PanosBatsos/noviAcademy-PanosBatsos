@@ -1,6 +1,7 @@
-using WorldRank.Console.Enums;
+using Domain.Enums;
+using Domain.Wallets;
 
-namespace WorldRank.Console
+namespace Application.Repositories
 {
 	public interface IWalletRepository
 	{
